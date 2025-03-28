@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgeEnt - Bacterial Monolayer</title>
+    <link rel="stylesheet" href="../src/styles.css">
+
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+    <!-- Import map for Three.js -->
+    <script type="importmap">
+        {
+          "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.174.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.174.0/examples/jsm/",
+            "rapier": "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.15.0/rapier.es.min.js"
+          }
+        }
+        </script>
+</head>
+<body>
+    <div id="info">
+        <h1>AgeEnt</h1>
+        <p>Bacterial Biofilm Monolayer Simulation</p>
+    </div>
+    <div id="scene-container"></div>
+
+    <script type="module" src="../src/index.js"></script>
+</body>
+</html>
