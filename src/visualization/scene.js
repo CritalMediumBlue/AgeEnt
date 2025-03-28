@@ -5,215 +5,216 @@ import * as UIControls from '../ui/controls.js';
 
 // Scene variables
 let scene, camera, renderer, controls;
-let bacteria = []; // Array to store bacteria entities
+let particles = []; // Array to store particle meshes
 let simulationInitialized = false;
+let physicsParticles = []; // Array to store physics particles
 
 // Constants
-const BACTERIA_COUNT = 3;
-const WORLD_SIZE = 100;
-const BACTERIA_LENGTH = 4;
-const BACTERIA_RADIUS = 0.5;
+const WORLD_SIZE = 1000;
+const PARTICLE_COUNT = 2000;
+const PARTICLE_RADIUS = 3; // micrometers
 
-// Initialize the scene
-async function init() {
-    // Create the scene
+/**
+ * Initialize the Three.js scene
+ */
+export async function initScene() {
+    // Cache DOM elements and constants
+    const canvasWidth = window.innerWidth;
+    const canvasHeight = window.innerHeight;
+    
+    // Initialize Three.js scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x111111);
-
+    scene.background = new THREE.Color(0x000000);
+    
     // Create the camera
-    const aspect = window.innerWidth / window.innerHeight;
-    camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
-    camera.position.set(0, 30, 50);
-    camera.lookAt(0, 0, 0);
-
+    camera = new THREE.PerspectiveCamera(75, canvasWidth / canvasHeight, 0.1, 3000);
+    camera.position.z = 500;
+    
     // Create the renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    document.getElementById('scene-container').appendChild(renderer.domElement);
-
-    // Add orbit controls
+    renderer.setSize(canvasWidth, canvasHeight);
+    
+    // Append to scene container if it exists, otherwise to body
+    const container = document.getElementById('scene-container') || document.body;
+    container.appendChild(renderer.domElement);
+    
+    // Add OrbitControls for camera interaction
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-
-    // Add lighting
-    addLights();
-
-    // Add a grid for reference
+    controls.screenSpacePanning = false;
+    controls.minDistance = 100;
+    controls.maxDistance = 1500;
+    controls.maxPolarAngle = Math.PI;
+    
+    // Add grid for reference
     addGrid();
-
-    // Initialize the physics simulation
+    
+    // Initialize physics simulation
     try {
-        console.log("Initializing simulation...");
         await SimulationManager.initSimulation();
         simulationInitialized = true;
         console.log("Simulation initialized successfully");
         
-        // Create boundary walls with explicit number value
-        console.log(`Creating boundaries with world size: ${WORLD_SIZE}`);
-        if (typeof WORLD_SIZE !== 'number') {
-            console.error("WORLD_SIZE is not a number:", WORLD_SIZE);
-            // Ensure we pass a valid number
-            SimulationManager.createBoundaries(100);
-        } else {
-            SimulationManager.createBoundaries(WORLD_SIZE);
-        }
-        
-        // Create bacteria
-        createBacteria();
+        // Create particles
+        createParticles();
     } catch (error) {
         console.error("Failed to initialize simulation:", error);
-        console.error("Error details:", error.stack);
     }
-
+    
     // Add window resize handler
     window.addEventListener('resize', onWindowResize);
-
-    // Initialize UI controls
-    UIControls.initControls();
     
     // Start the animation loop
     animate();
+    
+    return {
+        scene,
+        camera,
+        renderer
+    };
 }
 
-// Add lights to the scene
-function addLights() {
-    // Ambient light
-    const ambientLight = new THREE.AmbientLight(0x404040, 1);
-    scene.add(ambientLight);
-
-    // Directional light (sun-like)
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(1, 1, 1).normalize();
-    scene.add(directionalLight);
-
-    // Hemisphere light (sky and ground)
-    const hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x080820, 0.5);
-    scene.add(hemisphereLight);
-}
-
-// Add a grid to the scene for reference
+/**
+ * Add a grid to the scene for reference
+ */
 function addGrid() {
     const gridHelper = new THREE.GridHelper(WORLD_SIZE, WORLD_SIZE / 10);
     scene.add(gridHelper);
-
+    
     // Add X, Y, Z axes
     const axesHelper = new THREE.AxesHelper(WORLD_SIZE / 2);
     scene.add(axesHelper);
+    
+    // Rotate grid to make it horizontal (XZ plane)
+    gridHelper.rotation.x = Math.PI / 2;
 }
 
-// Create bacteria representations
-function createBacteria() {
+/**
+ * Create particle representations
+ */
+function createParticles() {
     if (!simulationInitialized) {
-        console.error("Cannot create bacteria: simulation not initialized");
+        console.error("Cannot create particles: simulation not initialized");
         return;
     }
     
-    // Material for bacteria
-    const bacteriaMaterial = new THREE.MeshStandardMaterial({
-        color: 0x4fc3f7,
-        roughness: 0.5,
-        metalness: 0.2
-    });
-
-    // Geometry for rod-shaped bacteria (cylinder)
-    const bacteriaGeometry = new THREE.CylinderGeometry(
-        BACTERIA_RADIUS, 
-        BACTERIA_RADIUS, 
-        BACTERIA_LENGTH, 
-        16, // radial segments
-        1,  // height segments
-        false // open-ended
-    );
-    
-    // Rotate the geometry to make it horizontal (along the x-axis)
-    bacteriaGeometry.rotateZ(Math.PI / 2);
-
-    // Create multiple bacteria
-    for (let i = 0; i < BACTERIA_COUNT; i++) {
-        const bacterium = new THREE.Mesh(bacteriaGeometry, bacteriaMaterial);
+    // Create particle meshes
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+        // Create different materials for different particle types
+        const particleMaterial1 = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+        const particleMaterial2 = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+        const particleMaterial3 = new THREE.MeshBasicMaterial({ color: 0xffff00 });
         
-        // Random position within world bounds
-        bacterium.position.x = (Math.random() - 0.5) * WORLD_SIZE * 0.8; // Keep away from edges
-        bacterium.position.z = 0;
-        bacterium.position.y = BACTERIA_RADIUS; // Just above the grid
+        // Alternate materials based on index
+        const material = i % 3 == 0 ? particleMaterial1 : 
+                         i % 3 == 1 ? particleMaterial2 : 
+                         particleMaterial3;
         
-        // Random rotation around Y axis (horizontal plane)
-        bacterium.rotation.y = Math.random() * Math.PI * 2;
+        // Create sphere mesh
+        const sphere = new THREE.Mesh(
+            new THREE.SphereGeometry(PARTICLE_RADIUS, 16, 16),
+            material
+        );
         
-        // Add to scene
-        scene.add(bacterium);
+        // Set initial position
+        sphere.position.set(
+            Math.random() * WORLD_SIZE - WORLD_SIZE / 2,
+            Math.random() * WORLD_SIZE - WORLD_SIZE / 2,
+            0
+        );
         
-        // Create physics entity for the bacterium
-        const entity = SimulationManager.createBacterium({
-            mesh: bacterium,
-            length: BACTERIA_LENGTH,
-            radius: BACTERIA_RADIUS
+        // Add to scene and store reference
+        particles.push(sphere);
+        scene.add(sphere);
+        
+        // Create physics particle at corresponding position
+        const physicsParticle = SimulationManager.createParticle({
+            position: {
+                x: sphere.position.x + WORLD_SIZE / 2,
+                y: sphere.position.y + WORLD_SIZE / 2
+            },
+            radius: PARTICLE_RADIUS
         });
         
-        if (entity) {
-            bacteria.push(entity);
+        if (physicsParticle) {
+            physicsParticles.push(physicsParticle);
         }
     }
     
-    console.log(`Created ${bacteria.length} bacteria with physics bodies`);
+    console.log(`Created ${particles.length} particles with physics bodies`);
 }
 
-// Handle window resizing
+/**
+ * Handle window resizing
+ */
 function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(width, height);
 }
 
-// Update bacteria using physics simulation
-function updateBacteria() {
-    if (simulationInitialized) {
-        // Update physics simulation
-        SimulationManager.updateSimulation();
-
-        // Update visual representation based on physics
-        bacteria.forEach(bacterium => {
-            if (bacterium && bacterium.physicsEntity && bacterium.mesh) {
-                // Get position from physics
-                const position = bacterium.physicsEntity.rigidBody.translation();
-
-                console.log(bacterium.physicsEntity.rigidBody.translation()); // Here I am getting Object { x: NaN, y: NaN }
-                
-
-                
-                // Update mesh position
-                bacterium.mesh.position.x = position.x;
-                bacterium.mesh.position.y = position.y;
-
-                
-                
-                // Get rotation from physics
-                const rotation = bacterium.physicsEntity.rigidBody.rotation();
-                
-             
-                // Update mesh rotation
-                bacterium.mesh.rotation.y = rotation;
-              
-            }
-        });
+/**
+ * Update particle positions from physics simulation
+ */
+function updateParticlePositions() {
+    if (!simulationInitialized) return;
+    
+    // Apply Brownian motion and handle boundaries
+    SimulationManager.applyBrownianMotion({
+        width: WORLD_SIZE,
+        height: WORLD_SIZE
+    });
+    
+    SimulationManager.handleBoundaries({
+        width: WORLD_SIZE,
+        height: WORLD_SIZE
+    });
+    
+    // Update physics simulation
+    SimulationManager.updateSimulation();
+    
+    // Get all rigid bodies
+    const rigidBodies = SimulationManager.getRigidBodies();
+    
+    // Update visual representation based on physics
+    for (let i = 0; i < particles.length && i < rigidBodies.length; i++) {
+        const position = rigidBodies[i].translation();
+        
+        // Update mesh position (convert from physics space to Three.js space)
+        particles[i].position.set(
+            position.x - WORLD_SIZE / 2,
+            position.y - WORLD_SIZE / 2,
+            0
+        );
     }
 }
 
-// Animation loop
+/**
+ * Animation loop
+ */
 function animate() {
     requestAnimationFrame(animate);
     
-    // Update controls
-    controls.update();
+    // Update controls - ensure they're properly updated for interaction
+    if (controls) {
+        controls.update();
+    }
     
-    // Update bacteria positions and rotations using physics
-    updateBacteria();
+    // Update particle positions from physics
+    updateParticlePositions();
     
     // Render the scene
     renderer.render(scene, camera);
 }
 
-// Initialize the scene when the page loads
-window.addEventListener('DOMContentLoaded', init);
+/**
+ * Apply external force to all particles
+ * @param {Object} force - Force vector {x, y, z}
+ */
+export function applyForce(force) {
+    SimulationManager.applyExternalForce(force);
+}
