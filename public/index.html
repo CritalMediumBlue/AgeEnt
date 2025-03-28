@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Particle Simulation with Rapier.js</title>
+      
+    <!-- Add WebXR specific meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+
+        <link rel="icon" type="image/x-icon" href="favicon.ico">
+  
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+            "rapier": "https://cdn.jsdelivr.net/npm/@dimforge/rapier2d-simd-compat@0.15.0/rapier.es.min.js"
+        }
+    }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            background-color: #000;
+            color: #fff;
+        }
+
+        /* UI Controls */
+        .controls {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 100;
+            width: 300px;
+            max-height: 80vh;
+            overflow-y: auto;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .controls h2 {
+            margin-top: 0;
+            font-size: 1.5em;
+            color: #4fc3f7;
+            border-bottom: 1px solid #4fc3f7;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .controls h3 {
+            font-size: 1.2em;
+            margin: 15px 0 10px;
+            color: #81d4fa;
+        }
+
+        .control-section {
+            margin-bottom: 20px;
+        }
+
+        .control-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+
+        .control-item label {
+            flex: 1;
+            min-width: 120px;
+            margin-right: 10px;
+        }
+
+        .control-item input[type="range"] {
+            flex: 2;
+            min-width: 100px;
+            height: 5px;
+            background: #555;
+            outline: none;
+            border-radius: 5px;
+            margin: 0 10px;
+        }
+
+        .control-item input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #4fc3f7;
+            cursor: pointer;
+        }
+
+        .control-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .control-item input[type="color"] {
+            width: 30px;
+            height: 30px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .value-display {
+            min-width: 40px;
+            text-align: center;
+            background: #333;
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin-left: 10px;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            border-top: 1px solid #555;
+            padding-top: 15px;
+        }
+
+        .button-container button {
+            background: #4fc3f7;
+            color: #000;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .button-container button:hover {
+            background: #81d4fa;
+        }
+
+        .toggle-button {
+            position: absolute;
+            top: 20px;
+            right: 330px;
+            background: #4fc3f7;
+            color: #000;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            z-index: 100;
+            transition: background 0.2s;
+        }
+
+        .toggle-button:hover {
+            background: #81d4fa;
+        }
+    </style>
+</head>
+<body>
+    <script type="module">
+        import RAPIER from 'rapier';
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // Import controls module
+        // Note: Using a relative path to the module
+        const controlsModule = await import('../src/ui/controls.js');
+        
+
+        // Wait for Rapier to initialize
+        async function init() {
+            // Cache DOM elements and constants
+            const canvasWidth = window.innerWidth;
+            const canvasHeight = window.innerHeight;
+            const width = 1000;
+            const height = 1000;
+            const particleRadius = 3; // micrometers
+            const numberOfParticles = 2000;
+
+            // Initialize Three.js scene
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, canvasWidth / canvasHeight, 0.1, 3000);
+            const renderer = new THREE.WebGLRenderer();
+            renderer.setSize(canvasWidth, canvasHeight);
+            document.body.appendChild(renderer.domElement);
+
+            // Add OrbitControls for camera interaction
+            const controls = new OrbitControls(camera, renderer.domElement);
+            camera.position.z = 500;
+
+            // Create particle meshes
+            const particles = [];
+
+            for (let i = 0; i < numberOfParticles; i++) {
+
+                const particleMaterial1 = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+                const particleMaterial2 = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+                const particleMaterial3 = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+
+                const material = i % 3 == 0 ? particleMaterial1 : i % 3 == 1 ? particleMaterial2 : particleMaterial3;
+
+                const sphere = new THREE.Mesh(
+                    new THREE.SphereGeometry(particleRadius, 16, 16),
+                    material
+                );
+                sphere.position.set(
+                    Math.random() * width - width / 2,
+                    Math.random() * height - height / 2,
+                    0
+                );
+                particles.push(sphere);
+                scene.add(sphere);
+            }
+
+            // Add grid and axes
+            addGrid();
+
+            // Initialize Rapier physics
+            await RAPIER.init();
+            const gravity = { x: 0.0, y: 0.0 };
+            const world = new RAPIER.World(gravity);
+            const rigidBodies = new Array(numberOfParticles);
+
+            // Create rigid bodies for particles
+            for (let i = 0; i < numberOfParticles; i++) {
+                const x = particles[i].position.x + width / 2;
+                const y = particles[i].position.y + height / 2;
+
+                const bodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(x, y);
+                const rigidBody = world.createRigidBody(bodyDesc);
+                rigidBodies[i] = rigidBody;
+
+                const colliderDesc = RAPIER.ColliderDesc.ball(particleRadius)
+                    .setRestitution(1)
+                    .setFriction(0.0)
+                    .setDensity(1);
+                world.createCollider(colliderDesc, rigidBody);
+                //apply initial velocity
+                const [vx, vy] = normalPolar(0, 1);
+                rigidBody.setLinvel({ x: vx*50, y: vy*50 }, true);
+
+            }
+
+            const temperature = 400; // K
+            const viscosity = 0.001; // Pa.s
+            const boltzmann = 1.38064852e-23; // J/K
+            const radius = 0.1*particleRadius / 1e6; // m
+            const diffusionCoefficient = boltzmann * temperature / (6 * Math.PI * viscosity * radius); // m^2/s
+            const sd = Math.sqrt(2 * diffusionCoefficient); // m
+            const mean = 0;
+
+            function normalPolar(mean, sd) {
+                let u1, u2, s;
+                do {
+                    u1 = Math.random() * 2 - 1;
+                    u2 = Math.random() * 2 - 1;
+                    s = u1 * u1 + u2 * u2;
+                } while (s >= 1 || s === 0);
+                const factor = Math.sqrt(-2.0 * Math.log(s) / s);
+                return [mean + u1 * factor * sd, mean + u2 * factor * sd];
+            }
+
+            function addGrid() {
+                const gridHelper = new THREE.GridHelper(width, width / 10);
+                scene.add(gridHelper);
+
+                const axesHelper = new THREE.AxesHelper(width / 2);
+                scene.add(axesHelper);
+
+                gridHelper.rotation.x = Math.PI / 2;
+            }
+
+            function handleBoundaries() {
+                for (let i = 0; i < numberOfParticles; i++) {
+                    const body = rigidBodies[i];
+                    const position = body.translation();
+                    let newX = position.x;
+                    let newY = position.y;
+
+                    if (newX < 0) newX = width;
+                    else if (newX > width) newX = 0;
+
+                    if (newY < 0) newY = height;
+                    else if (newY > height) newY = 0;
+
+                    body.setTranslation({ x: newX, y: newY }, true);
+                }
+            }
+
+            function applyBrownianMotion() {
+                for (let i = 0; i < numberOfParticles; i++) {
+                    const body = rigidBodies[i];
+                    const position = body.translation();
+                    const [offsetX, offsetY] = normalPolar(mean, sd);
+
+                    let newX = position.x + offsetX * 1e6;
+                    let newY = position.y + offsetY * 1e6;
+
+                    if (newX < 0) newX = width;
+                    else if (newX > width) newX = 0;
+
+                    if (newY < 0) newY = height;
+                    else if (newY > height) newY = 0;
+
+                    body.setTranslation({ x: newX, y: newY }, true);
+                    body.setLinvel({ x: 0, y: 0 }, true);
+                }
+            }
+
+            function updateParticlePositions() {
+                for (let i = 0; i < numberOfParticles; i++) {
+                    const position = rigidBodies[i].translation();
+                    particles[i].position.set(
+                        position.x - width / 2,
+                        position.y - height / 2,
+                        0
+                    );
+                }
+            }
+
+            // Function to apply external force to all particles
+            function applyExternalForce(force) {
+                for (let i = 0; i < numberOfParticles; i++) {
+                    const body = rigidBodies[i];
+                    const currentVel = body.linvel();
+                    body.setLinvel({ 
+                        x: currentVel.x + force.x, 
+                        y: currentVel.y + force.y 
+                    }, true);
+                }
+                console.log(`Applied force: x=${force.x}, y=${force.y}, z=${force.z}`);
+            }
+
+            // Initialize UI controls
+            controlsModule.initControls();
+            
+            // Make applyExternalForce available to the controls module
+            window.applyExternalForce = applyExternalForce;
+
+            function animate() {
+                applyBrownianMotion();
+                world.step();
+                updateParticlePositions();
+                handleBoundaries()
+                renderer.render(scene, camera);
+                requestAnimationFrame(animate);
+            }
+
+            animate();
+        }
+
+        // Start the simulation
+        init();
+    </script>
+</body>
+</html>
