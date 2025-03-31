@@ -115,7 +115,7 @@ function addSimulationControls() {
             }
         },
         {
-            type: 'slider',
+            type: 'sliderFine',
             label: 'Diameter',
             min: 0.25,
             max: 1.25,
@@ -267,12 +267,34 @@ function createControl(config) {
             
             input.addEventListener('input', () => {
                 const value = parseFloat(input.value);
-                valueDisplay.textContent = value.toFixed(2);
+                valueDisplay.textContent = value.toFixed(0);
                 config.onChange(value);
             });
             
             controlContainer.appendChild(input);
             controlContainer.appendChild(valueDisplay);
+            break;
+
+        case 'sliderFine':
+            input = document.createElement('input');
+            input.type = 'range';
+            input.min = config.min;
+            input.max = config.max;
+            input.step = config.step;
+            input.value = config.defaultValue;
+            
+            const valueDisplayFine = document.createElement('span');
+            valueDisplayFine.textContent = config.defaultValue;
+            valueDisplayFine.className = 'value-display';
+            
+            input.addEventListener('input', () => {
+                const value = parseFloat(input.value);
+                valueDisplayFine.textContent = value.toFixed(2);
+                config.onChange(value);
+            });
+            
+            controlContainer.appendChild(input);
+            controlContainer.appendChild(valueDisplayFine);
             break;
             
         case 'checkbox':
