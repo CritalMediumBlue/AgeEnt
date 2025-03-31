@@ -3,6 +3,7 @@ import RAPIER from 'rapier';
 // Simulation variables
 let world;
 let initialized = false;
+let isPaused = true;
 const rigidBodies = [];
 
 // Constants
@@ -118,7 +119,7 @@ export function createParticles(count, options = {}) {
  * Update the physics simulation
  */
 export function updateSimulation() {
-    if (!initialized || !world) {
+    if (!initialized || !world || isPaused){
         return;
     }
     
@@ -212,6 +213,10 @@ export function applyExternalForce(force) {
     }
     
     console.log(`Applied force: x=${force.x}, y=${force.y}, z=${force.z || 0}`);
+}
+
+export function pause(){
+    isPaused = !isPaused;
 }
 
 /**

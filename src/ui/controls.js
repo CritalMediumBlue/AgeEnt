@@ -2,6 +2,7 @@
 // UI state
 let controlsContainer;
 let isControlsVisible = true;
+let isRunning = false;
 
 /**
  * Initialize the UI controls
@@ -48,30 +49,77 @@ function toggleControlsVisibility() {
  * Add simulation control elements
  */
 function addSimulationControls() {
+    addSection('Microfluidics device', [
+        //here the user will choose one simulation out of the 3
+        {
+            type: 'slider',
+            label: 'width [μm]',
+            min: 0,
+            max: 100,
+            step: 1,
+            defaultValue: 100,
+            onChange: (value) => {
+                // This would be implemented in the simulation manager
+                console.log(`Width of microfluidics device set to ${Math.round(value)}μm`);
+            }
+        },
+
+        {
+            type: 'slider',
+            label: 'height [μm]',
+            min: 0,
+            max: 100,
+            step: 1,
+            defaultValue: 60,
+            onChange: (value) => {
+                // This would be implemented in the simulation manager
+                console.log(`Height of microfluidics device set to ${Math.round(value)}μm`);
+            }
+        },
+        {
+            type: 'select',
+            label: 'Exit of the chamber',
+            //oprions are top, bottom, left or right
+            options: [
+                { value: 'top', label: 'Top' },
+                { value: 'bottom', label: 'Bottom' },
+                { value: 'left', label: 'Left' },
+                { value: 'right', label: 'Right' },
+                { value: 'left and right', label: 'Left and Right' },
+                { value: 'top and bottom', label: 'Top and Bottom' },
+                {value: 'all', label: 'All'}
+            ],
+            defaultValue: 'top',
+            onChange: (value) => {
+                console.log(`Exit of the chamber set to ${value}`);
+            }
+        }
+
+    ]);
+
+
+
     // Add section for bacteria parameters
+
     addSection('Bacteria Parameters', [
         {
             type: 'slider',
-            label: 'Motility Speed',
-            min: 0,
-            max: 1,
-            step: 0.05,
-            defaultValue: 0.3,
+            label: 'Doubling time',
+            min: 20,
+            max: 120,
+            step: 1,
+            defaultValue: 30,
             onChange: (value) => {
                 // Apply to all bacteria
-                applyExternalForce({
-                    x: value * 2,
-                    y: 0,
-                    z: 0
-                });
+              
             }
         },
         {
             type: 'slider',
-            label: 'Tumble Rate',
-            min: 0,
-            max: 0.2,
-            step: 0.01,
+            label: 'Diameter',
+            min: 0.25,
+            max: 1.25,
+            step: 0.05,
             defaultValue: 0.05,
             onChange: (value) => {
                 // This would be implemented in the simulation manager
@@ -137,7 +185,7 @@ function addSimulationControls() {
             }
         },
         {
-            type: 'color',
+            type: 'checkbox',
             label: 'Bacteria Color',
             defaultValue: '#4fc3f7',
             onChange: (value) => {
@@ -157,10 +205,12 @@ function addSimulationControls() {
             }
         },
         {
-            label: 'Toggle Pause',
-            onClick: () => {
-                // This would pause/resume the simulation
-                console.log('Toggle pause');
+            label: 'Run',
+            onClick: (event) => {
+                stopSimulation();
+                isRunning = !isRunning;
+                event.target.textContent = isRunning ? 'Pause' : 'Start';
+                return isRunning;
             }
         }
     ]);
@@ -236,11 +286,17 @@ function createControl(config) {
             
             controlContainer.appendChild(input);
             break;
-            
-        case 'color':
-            input = document.createElement('input');
-            input.type = 'color';
-            input.value = config.defaultValue;
+        case 'select':
+            input = document.createElement('select');
+            config.options.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option.value;
+                optionElement.textContent = option.label;
+                if (option.value === config.defaultValue) {
+                    optionElement.selected = true;
+                }
+                input.appendChild(optionElement);
+            });
             
             input.addEventListener('change', () => {
                 config.onChange(input.value);
@@ -248,6 +304,8 @@ function createControl(config) {
             
             controlContainer.appendChild(input);
             break;
+            
+        
     }
     
     return controlContainer;

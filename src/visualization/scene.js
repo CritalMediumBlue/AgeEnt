@@ -40,9 +40,7 @@ export async function initScene() {
     
     // Add OrbitControls for camera interaction
     controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.screenSpacePanning = false;
+
     controls.minDistance = 100;
     controls.maxDistance = 1500;
     controls.maxPolarAngle = Math.PI;
@@ -164,10 +162,10 @@ function updateParticlePositions() {
     if (!simulationInitialized) return;
     
     // Apply Brownian motion and handle boundaries
-    SimulationManager.applyBrownianMotion({
+    /* SimulationManager.applyBrownianMotion({
         width: WORLD_SIZE,
         height: WORLD_SIZE
-    });
+    }); */
     
     SimulationManager.handleBoundaries({
         width: WORLD_SIZE,
@@ -217,4 +215,8 @@ function animate() {
  */
 export function applyForce(force) {
     SimulationManager.applyExternalForce(force);
+}
+
+export function stop() {
+    SimulationManager.pause();
 }

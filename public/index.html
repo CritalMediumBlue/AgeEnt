@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Particle Simulation with Rapier.js</title>
+    <title>AgeEnt</title>
       
     <!-- Add WebXR specific meta tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,7 +12,7 @@
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     
     <!-- External CSS -->
-    <link rel="stylesheet" href="../src/styles.css">
+    <link rel="stylesheet" href="styles.css">
   
     <!-- Import map for ES modules -->
     <script type="importmap">
@@ -20,7 +20,8 @@
         "imports": {
             "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
             "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-            "rapier": "https://cdn.jsdelivr.net/npm/@dimforge/rapier2d-simd-compat@0.15.0/rapier.es.min.js"
+            "rapier": "https://cdn.jsdelivr.net/npm/@dimforge/rapier2d-simd-compat@0.15.0/rapier.es.min.js"         
+
         }
     }
     </script>
@@ -28,12 +29,7 @@
 <body>
     <!-- Scene container -->
     <div id="scene-container"></div>
-    
-    <!-- Info panel -->
-    <div id="info">
-        <h1>Particle Simulation</h1>
-        <p>A physics-based simulation of particles with Brownian motion</p>
-    </div>
+
     
     <!-- Main application script -->
     <script type="module">
@@ -44,15 +40,20 @@
         // Initialize the application
         async function initApp() {
             try {
-                // Initialize the scene
-                const sceneData = await SceneManager.initScene();
-                
                 // Initialize UI controls
                 UIControls.initControls();
+
+                await SceneManager.initScene();
+               
+        
                 
-                // Make the applyForce function available to the controls module
+                 // Make the applyForce function available to the controls module
                 window.applyExternalForce = (force) => {
                     SceneManager.applyForce(force);
+                };
+
+                window.stopSimulation = () => {
+                    SceneManager.stop();
                 };
                 
                 console.log("Application initialized successfully");
