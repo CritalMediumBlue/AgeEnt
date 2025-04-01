@@ -117,8 +117,8 @@ function createParticles() {
         
         // Set initial position
         sphere.position.set(
-            Math.random() * WORLD_SIZE - WORLD_SIZE / 2,
-            Math.random() * WORLD_SIZE - WORLD_SIZE / 2,
+            Math.random()* WORLD_SIZE/10 ,
+            Math.random()* WORLD_SIZE/10 ,
             0
         );
         
@@ -129,8 +129,8 @@ function createParticles() {
         // Create physics particle at corresponding position
         const physicsParticle = SimulationManager.createParticle({
             position: {
-                x: sphere.position.x + WORLD_SIZE / 2,
-                y: sphere.position.y + WORLD_SIZE / 2
+                x: sphere.position.x, 
+                y: sphere.position.y 
             },
             radius: PARTICLE_RADIUS
         });
@@ -219,4 +219,21 @@ export function applyForce(force) {
 
 export function stop() {
     SimulationManager.pause();
+}
+
+export function destroySimulation() {
+    SimulationManager.destroySimulation();
+    
+    // Remove all particles from the scene
+    for (let i = 0; i < particles.length; i++) {
+        scene.remove(particles[i]);
+    }
+    
+    // Clear the particles array
+    particles = [];
+    
+    // Clear the physics particles array
+    physicsParticles = [];
+    
+    simulationInitialized = false;
 }

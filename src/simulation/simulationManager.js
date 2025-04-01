@@ -33,6 +33,23 @@ export async function initSimulation(options = {}) {
     }
 }
 
+export function destroySimulation() {
+    if (world) {
+        // Free all rigid bodies and colliders
+        rigidBodies.forEach((body) => {
+            world.removeRigidBody(body);
+        });
+        rigidBodies.length = 0; // Clear the array
+
+        // Free the world itself
+        world.free();
+        world = null;
+    }
+    
+    initialized = false;
+    console.log("Physics simulation destroyed");
+}
+
 /**
  * Create a particle in the physics world
  * @param {Object} options - Particle options
@@ -82,38 +99,7 @@ export function createParticle(options = {}) {
     };
 }
 
-/**
- * Create multiple particles
- * @param {number} count - Number of particles to create
- * @param {Object} options - Options for particle creation
- * @returns {Array} - Array of created particles
- */
-export function createParticles(count, options = {}) {
-    const width = options.width || 1000;
-    const height = options.height || 1000;
-    const particles = [];
-    
-    for (let i = 0; i < count; i++) {
-        // Random position
-        const position = {
-            x: Math.random() * width,
-            y: Math.random() * height
-        };
-        
-        // Create particle
-        const particle = createParticle({
-            ...options,
-            position
-        });
-        
-        if (particle) {
-            particles.push(particle);
-        }
-    }
-    
-    console.log(`Created ${particles.length} particles`);
-    return particles;
-}
+
 
 /**
  * Update the physics simulation

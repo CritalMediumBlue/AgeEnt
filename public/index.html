@@ -21,7 +21,6 @@
             "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
             "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
             "rapier": "https://cdn.jsdelivr.net/npm/@dimforge/rapier2d-simd-compat@0.15.0/rapier.es.min.js"         
-
         }
     }
     </script>
@@ -43,14 +42,15 @@
                 // Initialize UI controls
                 UIControls.initControls();
 
-                await SceneManager.initScene();
-               
-        
+                // Set up simulation start callback
+                UIControls.setSimulationStartCallback(async () => {
+                    const parameters = UIControls.getParameters();
+                    
+                    // Initialize scene with current parameters
+                    await SceneManager.initScene(parameters);
+                });
                 
-                 // Make the applyForce function available to the controls module
-                window.applyExternalForce = (force) => {
-                    SceneManager.applyForce(force);
-                };
+             
 
                 window.stopSimulation = () => {
                     SceneManager.stop();
