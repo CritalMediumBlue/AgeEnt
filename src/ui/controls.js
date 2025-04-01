@@ -10,6 +10,10 @@ let exit = 'top';
 let bacteriaDiameter = 0.05;
 let doublingTime = 30;
 
+let numSubstances = 1; // Default number of substances
+let diffusionCoefficients = [1.0]; // Default diffusion coefficients
+
+
 /**
  * Initialize the UI controls
  */
@@ -31,7 +35,9 @@ export function initControls() {
     toggleButton.addEventListener('click', toggleControlsVisibility);
     document.body.appendChild(toggleButton);
     
-    // Add simulation controls
+    // Add simulation controls    addDiffusionControls();
+    addDiffusionControls();
+
     addSimulationControls();
       
     
@@ -58,6 +64,39 @@ function toggleControlsVisibility() {
     const toggleButton = document.querySelector('.toggle-button');
     if (toggleButton) {
         toggleButton.textContent = isControlsVisible ? 'Hide Controls' : 'Show Controls';
+    }
+}
+function updateDiffusionInputs() {
+    const diffusionContainer = document.getElementById('diffusion-container');
+    diffusionContainer.innerHTML = ''; // Clear existing inputs
+
+    // Adjust the size of the diffusionCoefficients array
+    diffusionCoefficients.length = numSubstances;
+    diffusionCoefficients.fill(1.0, diffusionCoefficients.length - numSubstances);
+
+    // Create input fields for each substance
+    for (let i = 0; i < numSubstances; i++) {
+        const inputContainer = document.createElement('div');
+        inputContainer.className = 'control-item';
+
+        const label = document.createElement('label');
+        label.textContent = `Substance ${i + 1} Diffusion Coefficient`;
+        inputContainer.appendChild(label);
+
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.step = '0.01';
+        input.value = diffusionCoefficients[i];
+        input.addEventListener('input', () => {
+            const value = parseFloat(input.value);
+            if (!isNaN(value)) {
+                diffusionCoefficients[i] = value;
+                console.log(`Substance ${i + 1} diffusion coefficient set to ${value}`);
+            }
+        });
+
+        inputContainer.appendChild(input);
+        diffusionContainer.appendChild(inputContainer);
     }
 }
 
@@ -255,6 +294,33 @@ function addSection(title, controls) {
     });
     
     controlsContainer.appendChild(section);
+}
+
+function addDiffusionControls() {
+
+    addSection('Diffusion', [
+        {
+            type: 'slider',
+            label: 'Number of Substances',
+            min: 1,
+            max: 10,
+            step: 1,
+            defaultValue: 1,
+            onChange: (value) => {
+                numSubstances = value;
+                updateDiffusionInputs();
+                console.log(`Number of substances set to ${value}`);
+            }
+        }
+    ]);
+
+    // Create a container for the dynamic inputs
+    const diffusionContainer = document.createElement('div');
+    diffusionContainer.id = 'diffusion-container';
+    controlsContainer.appendChild(diffusionContainer);
+
+    // Initialize the inputs
+    updateDiffusionInputs();
 }
 
 /**

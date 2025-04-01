@@ -11,7 +11,7 @@ let animationFrameId;
 
 // Constants
 const WORLD_SIZE = 1000;
-const PARTICLE_COUNT = 2000;
+const PARTICLE_COUNT = 1000;
 const PARTICLE_RADIUS = 3; // micrometers
 
 /**
@@ -191,7 +191,7 @@ function createParticles() {
       
         // Create sphere mesh
         const sphere = new THREE.Mesh(
-            new THREE.SphereGeometry(PARTICLE_RADIUS, 16, 16),
+            new THREE.CapsuleGeometry(PARTICLE_RADIUS, 8, 8),
             particleMaterial1
         );
         
@@ -246,6 +246,9 @@ function updateParticlePositions() {
     // Update visual representation based on physics
     for (let i = 0; i < particles.length && i < rigidBodies.length; i++) {
         const position = rigidBodies[i].translation();
+        const orientation = rigidBodies[i].rotation();
+
+        
         
         // Update mesh position (convert from physics space to Three.js space)
         particles[i].position.set(
@@ -253,6 +256,9 @@ function updateParticlePositions() {
             position.y - WORLD_SIZE / 2,
             0
         );
+
+        particles[i].rotation.set(0,0,orientation);
+       
     }
 }
 

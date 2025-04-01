@@ -112,7 +112,7 @@ export function createParticle(options = {}) {
     const rigidBody = world.createRigidBody(bodyDesc);
     
     // Create collider
-    const colliderDesc = RAPIER.ColliderDesc.ball(radius)
+    const colliderDesc = RAPIER.ColliderDesc.capsule(radius, radius)
         .setRestitution(restitution)
         .setFriction(friction)
         .setDensity(density);
