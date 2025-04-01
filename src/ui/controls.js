@@ -9,7 +9,6 @@ let height = 60;
 let exit = 'top';
 let bacteriaDiameter = 0.05;
 let doublingTime = 30;
-let gravity = 0;
 
 /**
  * Initialize the UI controls
@@ -34,13 +33,14 @@ export function initControls() {
     
     // Add simulation controls
     addSimulationControls();
+      
     
     console.log("UI controls initialized");
 }
 
 export function getParameters() {
     // This function will return the parameters set by the user
-    return {width, height, exit, bacteriaDiameter, doublingTime, gravity};
+    return {width, height, exit, bacteriaDiameter, doublingTime};
 }
 
 export function setSimulationStartCallback(callback) {
@@ -110,45 +110,25 @@ function addSimulationControls() {
         },
         {
             type: 'slider',
-            label: 'Initial number of bacteria',
+            label: 'Number of bacteria',
             min: 1,
             max: 1000,
             step: 1,
             defaultValue: 3,
             onChange: (value) => {
                 
-                console.log(`Bacteria diameter set to ${value} μm`);
+                console.log(` diameter set to ${value} μm`);
             }
         }
     ]);
 
-    addSection('Bacteria Doubling time', [
-        {
-            type: 'slider',
-            label: 'Mean',
-            min: 20,
-            max: 120,
-            step: 1,
-            defaultValue: 30,
-            onChange: (value) => {
-                doublingTime = value;
-                console.log(`Doubling time set to ${value} min`);
-            }
-        },
-        {
-            type: 'slider',
-            label: 'Standard Deviation',
-            min: 20,
-            max: 120,
-            step: 1,
-            defaultValue: 30,
-            onChange: (value) => {
-                doublingTime = value;
-                console.log(`Doubling time set to ${value} min`);
-            }
-        }
-    ]);
-    addSection('Bacteria Diameter', [
+      // Add title
+      const title2 = document.createElement('h2');
+      title2.textContent = 'Bacteria Parameters';
+      controlsContainer.appendChild(title2);
+
+   
+    addSection(' Diameter [μm]', [
         {
             type: 'fineSlider',
             label: 'Mean',
@@ -158,7 +138,7 @@ function addSimulationControls() {
             defaultValue: 0.05,
             onChange: (value) => {
                 bacteriaDiameter = value;
-                console.log(`Bacteria diameter set to ${value} μm`);
+                console.log(` diameter set to ${value} μm`);
             }
         },
         {
@@ -170,13 +150,13 @@ function addSimulationControls() {
             defaultValue: 0.05,
             onChange: (value) => {
                 bacteriaDiameter = value;
-                console.log(`Bacteria diameter set to ${value} μm`);
+                console.log(` diameter set to ${value} μm`);
             }
         }
     ]);
    
         
-    addSection('Bacteria Duplication length [μm]', [
+    addSection(' Duplication length [μm]', [
         {
             type: 'slider',
             label: 'Mean',
@@ -186,7 +166,7 @@ function addSimulationControls() {
             defaultValue: 3,
             onChange: (value) => {
                 
-                console.log(`Bacteria diameter set to ${value} μm`);
+                console.log(` diameter set to ${value} μm`);
             }
         },
         {
@@ -198,13 +178,13 @@ function addSimulationControls() {
             defaultValue: 3,
             onChange: (value) => {
                 
-                console.log(`Bacteria diameter set to ${value} μm`);
+                console.log(` diameter set to ${value} μm`);
             }
         },
 
     ]);
 
-    addSection('Bacteria duplication time [min]', [
+    addSection('Duplication time [min]', [
         {
             type: 'slider',
             label: 'Mean',
@@ -214,7 +194,7 @@ function addSimulationControls() {
             defaultValue: 3,
             onChange: (value) => {
                 
-                console.log(`Bacteria diameter set to ${value} μm`);
+                console.log(` diameter set to ${value} μm`);
             }
         },
         {
@@ -226,32 +206,31 @@ function addSimulationControls() {
             defaultValue: 3,
             onChange: (value) => {
                 
-                console.log(`Bacteria diameter set to ${value} μm`);
+                console.log(` diameter set to ${value} μm`);
             }
         }
         
     ]);
     
     
+
     
     addActionButtons([
       
         {
             label: 'Start Simulation',
-            onClick: (event) => {
+            onClick: () => {
                 if (simulationStartCallback) {
+                    
                     simulationStartCallback();
-                    event.target.disabled = true;
+                    stopSimulation();
                 }
             }
         },
         {
-            label: 'Run',
-            onClick: (event) => {
+            label: 'Run / Pause',
+            onClick: () => {
                 stopSimulation();
-                isRunning = !isRunning;
-                event.target.textContent = isRunning ? 'Pause' : 'Run';
-                return isRunning;
             }
         }
     ]);
@@ -338,17 +317,7 @@ function createControl(config) {
             controlContainer.appendChild(valueDisplayFine);
             break;
             
-        case 'checkbox':
-            input = document.createElement('input');
-            input.type = 'checkbox';
-            input.checked = config.defaultValue;
-            
-            input.addEventListener('change', () => {
-                config.onChange(input.checked);
-            });
-            
-            controlContainer.appendChild(input);
-            break;
+      
         case 'select':
             input = document.createElement('select');
             config.options.forEach(option => {

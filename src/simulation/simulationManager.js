@@ -1,4 +1,5 @@
 import RAPIER from 'rapier';
+import { normalPolar } from '../performance/normalPolar.js';
 
 // Simulation variables
 let world;
@@ -34,20 +35,59 @@ export async function initSimulation(options = {}) {
 }
 
 export function destroySimulation() {
-    if (world) {
-        // Free all rigid bodies and colliders
-        rigidBodies.forEach((body) => {
-            world.removeRigidBody(body);
-        });
-        rigidBodies.length = 0; // Clear the array
-
-        // Free the world itself
-        world.free();
-        world = null;
+    if (!initialized || !world) {
+        console.warn("Simulation not initialized or already destroyed");
+        return;
     }
     
-    initialized = false;
-    console.log("Physics simulation destroyed");
+    try {
+        // Pause the simulation to prevent any ongoing steps
+        isPaused = true;
+
+        let rigidBodiesDestroyed = 0;
+        let collidersDestroyed = 0;
+
+        // Remove all colliders first to prevent dangling references
+        world.forEachCollider((collider) => {
+            try {
+                world.removeCollider(collider);
+                
+                collidersDestroyed++;
+            } catch (error) {
+                console.error(`Error removing collider: ${error}`);
+            }
+        });
+
+        // Remove all rigid bodies
+        while (rigidBodies.length > 0) {
+            const body = rigidBodies.pop();
+            try {
+                world.removeRigidBody(body);
+               
+                rigidBodiesDestroyed++;
+            } catch (error) {
+                console.error(`Error removing rigid body: ${error}`);
+            }
+        }
+
+        console.log(`Destroyed ${rigidBodiesDestroyed} rigid bodies`);
+        console.log(`Destroyed ${collidersDestroyed} colliders`);
+
+        // Explicitly clear the rigidBodies array
+        rigidBodies.length = 0;
+
+        // Destroy the world
+        world.free(); // Free memory allocated by Rapier
+        world = null;
+
+        // Reset all simulation-related variables
+        initialized = false;
+        isPaused = true;
+
+        console.log("Simulation destroyed and all resources freed");
+    } catch (error) {
+        console.error("Error during simulation destruction:", error);
+    }
 }
 
 /**
@@ -79,14 +119,10 @@ export function createParticle(options = {}) {
     
     const collider = world.createCollider(colliderDesc, rigidBody);
     
-    // Apply initial velocity if provided
-    if (options.velocity) {
-        rigidBody.setLinvel(options.velocity, true);
-    } else {
-        // Default: apply random velocity using normal distribution
-        const [vx, vy] = normalPolar(0, 1);
-        rigidBody.setLinvel({ x: vx * 50, y: vy * 50 }, true);
-    }
+  
+    const [vx, vy] = normalPolar(0, 1);
+    rigidBody.setLinvel({ x: vx * 50, y: vy * 50 }, true);
+    
     
     // Store the rigid body
     const particleIndex = rigidBodies.length;
@@ -112,44 +148,7 @@ export function updateSimulation() {
     world.step();
 }
 
-/**
- * Apply Brownian motion to particles
- * @param {Object} options - Options for Brownian motion
- */
-export function applyBrownianMotion(options = {}) {
-    if (!initialized || !world) {
-        return;
-    }
-    
-    const temperature = options.temperature || 400; // K
-    const viscosity = options.viscosity || 0.001; // Pa.s
-    const boltzmann = 1.38064852e-23; // J/K
-    const radius = (options.radius || 0.1 * particleRadius) / 1e6; // m
-    const diffusionCoefficient = boltzmann * temperature / (6 * Math.PI * viscosity * radius); // m^2/s
-    const sd = Math.sqrt(2 * diffusionCoefficient); // m
-    const mean = 0;
-    const width = options.width || 1000;
-    const height = options.height || 1000;
-    
-    for (let i = 0; i < rigidBodies.length; i++) {
-        const body = rigidBodies[i];
-        const position = body.translation();
-        const [offsetX, offsetY] = normalPolar(mean, sd);
-        
-        let newX = position.x + offsetX * 1e6;
-        let newY = position.y + offsetY * 1e6;
-        
-        // Handle boundaries
-        if (newX < 0) newX = width;
-        else if (newX > width) newX = 0;
-        
-        if (newY < 0) newY = height;
-        else if (newY > height) newY = 0;
-        
-        body.setTranslation({ x: newX, y: newY }, true);
-        body.setLinvel({ x: 0, y: 0 }, true);
-    }
-}
+
 
 /**
  * Handle boundary conditions for particles
@@ -179,27 +178,7 @@ export function handleBoundaries(options = {}) {
     }
 }
 
-/**
- * Apply external force to all particles
- * @param {Object} force - Force vector {x, y, z}
- */
-export function applyExternalForce(force) {
-    if (!initialized || !world) {
-        return;
-    }
-    
-    for (let i = 0; i < rigidBodies.length; i++) {
-        const body = rigidBodies[i];
-        const currentVel = body.linvel();
-        
-        body.setLinvel({
-            x: currentVel.x + force.x,
-            y: currentVel.y + force.y
-        }, true);
-    }
-    
-    console.log(`Applied force: x=${force.x}, y=${force.y}, z=${force.z || 0}`);
-}
+
 
 export function pause(){
     isPaused = !isPaused;
@@ -211,22 +190,4 @@ export function pause(){
  */
 export function getRigidBodies() {
     return rigidBodies;
-}
-
-/**
- * Generate random values using normal distribution (Box-Muller transform)
- * @param {number} mean - Mean value
- * @param {number} sd - Standard deviation
- * @returns {Array} - Array of two normally distributed random values
- */
-function normalPolar(mean, sd) {
-    let u1, u2, s;
-    do {
-        u1 = Math.random() * 2 - 1;
-        u2 = Math.random() * 2 - 1;
-        s = u1 * u1 + u2 * u2;
-    } while (s >= 1 || s === 0);
-    
-    const factor = Math.sqrt(-2.0 * Math.log(s) / s);
-    return [mean + u1 * factor * sd, mean + u2 * factor * sd];
 }

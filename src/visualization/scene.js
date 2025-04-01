@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import * as SimulationManager from '../simulation/simulationManager.js';
-import * as UIControls from '../ui/controls.js';
 
 // Scene variables
 let scene, camera, renderer, controls;
 let particles = []; // Array to store particle meshes
 let simulationInitialized = false;
 let physicsParticles = []; // Array to store physics particles
+let animationFrameId;
 
 // Constants
 const WORLD_SIZE = 1000;
@@ -18,6 +18,13 @@ const PARTICLE_RADIUS = 3; // micrometers
  * Initialize the Three.js scene
  */
 export async function initScene() {
+    // Check if simulation is already initialized
+    if (simulationInitialized) {
+        deleteAll();
+        console.log("Simulation already initialized, deleting existing elements");
+    }
+
+
     // Cache DOM elements and constants
     const canvasWidth = window.innerWidth;
     const canvasHeight = window.innerHeight;
@@ -60,9 +67,7 @@ export async function initScene() {
         console.error("Failed to initialize simulation:", error);
     }
     
-    // Add window resize handler
-    window.addEventListener('resize', onWindowResize);
-    
+   
     // Start the animation loop
     animate();
     
@@ -78,14 +83,95 @@ export async function initScene() {
  */
 function addGrid() {
     const gridHelper = new THREE.GridHelper(WORLD_SIZE, WORLD_SIZE / 10);
+    gridHelper.name = 'gridHelper';
     scene.add(gridHelper);
     
     // Add X, Y, Z axes
     const axesHelper = new THREE.AxesHelper(WORLD_SIZE / 2);
+    axesHelper.name = 'axesHelper';
     scene.add(axesHelper);
     
     // Rotate grid to make it horizontal (XZ plane)
     gridHelper.rotation.x = Math.PI / 2;
+}
+
+function deleteAll() {
+    // Check if simulation is initialized
+    if (!simulationInitialized) {
+        console.warn("No simulation to delete");
+        return;
+    }
+
+    // Remove all particles from the scene
+    for (let particle of particles) {
+        scene.remove(particle);
+        // Dispose of geometry and material to free memory
+        particle.geometry.dispose();
+        particle.material.dispose();
+    }
+    particles = [];
+
+    // Remove and dispose of grid and axes helpers
+    const gridHelper = scene.getObjectByName('gridHelper');
+    if (gridHelper) {
+        scene.remove(gridHelper);
+        gridHelper.geometry.dispose();
+        gridHelper.material.dispose();
+    }
+
+    const axesHelper = scene.getObjectByName('axesHelper');
+    if (axesHelper) {
+        scene.remove(axesHelper);
+        axesHelper.geometry.dispose();
+        axesHelper.material.dispose();
+    }
+
+    // Dispose of all other scene children
+    while (scene.children.length > 0) {
+        const child = scene.children[0];
+        scene.remove(child);
+
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+            if (Array.isArray(child.material)) {
+                child.material.forEach((mat) => mat.dispose());
+            } else {
+                child.material.dispose();
+            }
+        }
+    }
+
+    // Dispose of renderer
+    if (renderer) {
+        renderer.dispose();
+        const container = document.getElementById('scene-container') || document.body;
+        if (renderer.domElement.parentNode === container) {
+            container.removeChild(renderer.domElement);
+        }
+    }
+
+    // Dispose of controls
+    if (controls) {
+        controls.dispose();
+    }
+
+    // Stop the animation loop
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+    // Call SimulationManager to delete simulation
+    SimulationManager.destroySimulation();
+
+    // Reset variables
+    scene = null;
+    camera = null;
+    renderer = null;
+    controls = null;
+    physicsParticles = [];
+    simulationInitialized = false;
+
+    console.log("All scene elements deleted");
 }
 
 /**
@@ -101,18 +187,12 @@ function createParticles() {
     for (let i = 0; i < PARTICLE_COUNT; i++) {
         // Create different materials for different particle types
         const particleMaterial1 = new THREE.MeshBasicMaterial({ color: 0xff00ff });
-        const particleMaterial2 = new THREE.MeshBasicMaterial({ color: 0x00ffff });
-        const particleMaterial3 = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-        
-        // Alternate materials based on index
-        const material = i % 3 == 0 ? particleMaterial1 : 
-                         i % 3 == 1 ? particleMaterial2 : 
-                         particleMaterial3;
-        
+      
+      
         // Create sphere mesh
         const sphere = new THREE.Mesh(
             new THREE.SphereGeometry(PARTICLE_RADIUS, 16, 16),
-            material
+            particleMaterial1
         );
         
         // Set initial position
@@ -143,17 +223,7 @@ function createParticles() {
     console.log(`Created ${particles.length} particles with physics bodies`);
 }
 
-/**
- * Handle window resizing
- */
-function onWindowResize() {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-    renderer.setSize(width, height);
-}
+
 
 /**
  * Update particle positions from physics simulation
@@ -161,12 +231,7 @@ function onWindowResize() {
 function updateParticlePositions() {
     if (!simulationInitialized) return;
     
-    // Apply Brownian motion and handle boundaries
-    /* SimulationManager.applyBrownianMotion({
-        width: WORLD_SIZE,
-        height: WORLD_SIZE
-    }); */
-    
+ 
     SimulationManager.handleBoundaries({
         width: WORLD_SIZE,
         height: WORLD_SIZE
@@ -195,7 +260,7 @@ function updateParticlePositions() {
  * Animation loop
  */
 function animate() {
-    requestAnimationFrame(animate);
+    animationFrameId = requestAnimationFrame(animate);
     
     // Update controls - ensure they're properly updated for interaction
     if (controls) {
@@ -209,31 +274,8 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-/**
- * Apply external force to all particles
- * @param {Object} force - Force vector {x, y, z}
- */
-export function applyForce(force) {
-    SimulationManager.applyExternalForce(force);
-}
+
 
 export function stop() {
     SimulationManager.pause();
-}
-
-export function destroySimulation() {
-    SimulationManager.destroySimulation();
-    
-    // Remove all particles from the scene
-    for (let i = 0; i < particles.length; i++) {
-        scene.remove(particles[i]);
-    }
-    
-    // Clear the particles array
-    particles = [];
-    
-    // Clear the physics particles array
-    physicsParticles = [];
-    
-    simulationInitialized = false;
 }
