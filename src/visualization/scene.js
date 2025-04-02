@@ -9,11 +9,9 @@ let simulationInitialized = false;
 let physicsParticles = []; // Array to store physics particles
 let animationFrameId;
 
-// Constants
-const WORLD_SIZE = 100;
 
 
-
+let defaultParams = {};
 
     
 
@@ -27,13 +25,13 @@ export async function initScene(parameters) {
         console.log("Simulation already initialized, deleting existing elements");
     }
     console.log("Initializing scene with parameters:", parameters);
-   /*  defaultParams.WIDTH = parameters.WIDTH;
-    defaultParams.HEIGHT = parameters.HEIGHT;
+    defaultParams.WIDTH = parameters.width;
+    defaultParams.HEIGHT = parameters.height;
     defaultParams.EXIT = parameters.EXIT;
-    defaultParams.BACTERIA_RADIUS = parameters.BACTERIA_RADIUS;
+    defaultParams.BACTERIA_RADIUS = parameters.bacteriaRadius;
     defaultParams.DOUBLING_TIME = parameters.DOUBLING_TIME;
-    defaultParams.NUMBER_OF_BACTERIA = parameters.NUMBER_OF_BACTERIA;
-      */
+    defaultParams.NUMBER_OF_BACTERIA = parameters.numberOfBacteria;
+      
 
     // Cache DOM elements and constants
     const canvasWidth = window.innerWidth;
@@ -72,7 +70,7 @@ export async function initScene(parameters) {
         console.log("Simulation initialized successfully");
         
         // Create particles
-        createParticles(parameters);
+        createParticles();
     } catch (error) {
         console.error("Failed to initialize simulation:", error);
     }
@@ -92,12 +90,13 @@ export async function initScene(parameters) {
  * Add a grid to the scene for reference
  */
 function addGrid() {
-    const gridHelper = new THREE.GridHelper(WORLD_SIZE*5, WORLD_SIZE / 10);
+    const gridSize = Math.max(defaultParams.WIDTH, defaultParams.HEIGHT);
+    const gridHelper = new THREE.GridHelper(gridSize, gridSize / 10);
     gridHelper.name = 'gridHelper';
     scene.add(gridHelper);
     
     // Add X, Y, Z axes
-    const axesHelper = new THREE.AxesHelper(WORLD_SIZE / 2);
+    const axesHelper = new THREE.AxesHelper(gridSize / 2);
     axesHelper.name = 'axesHelper';
     scene.add(axesHelper);
     
@@ -187,14 +186,14 @@ function deleteAll() {
 /**
  * Create particle representations
  */
-function createParticles(parameters) {
+function createParticles() {
     if (!simulationInitialized) {
         console.error("Cannot create particles: simulation not initialized");
         return;
     }
     
     // Create particle meshes
-    for (let i = 0; i < parameters.numberOfBacteria; i++) {
+    for (let i = 0; i < defaultParams.NUMBER_OF_BACTERIA; i++) {
         // Create different materials for different particle types
         const particleMaterial1 = new THREE.MeshBasicMaterial({ color: 0xff00ff ,
             transparent: true, opacity: 0.5 });
@@ -203,15 +202,15 @@ function createParticles(parameters) {
       
         // Create capsule mesh
         const capsule = new THREE.Mesh(
-            new THREE.CapsuleGeometry(parameters.bacteriaRadius,  4*parameters.bacteriaRadius, 
+            new THREE.CapsuleGeometry(defaultParams.BACTERIA_RADIUS,  4*defaultParams.BACTERIA_RADIUS, 
                 4, 8),
             particleMaterial1
         );
         
         // Set initial position
         capsule.position.set(
-            Math.random()* WORLD_SIZE/10 ,
-            Math.random()* WORLD_SIZE/10 ,
+            Math.random()* defaultParams.WIDTH,
+            Math.random()* defaultParams.HEIGHT,
             0
         );
         
@@ -225,7 +224,7 @@ function createParticles(parameters) {
                 x: capsule.position.x, 
                 y: capsule.position.y 
             },
-            radius: parameters.bacteriaRadius,
+            radius: defaultParams.BACTERIA_RADIUS,
         });
         
         if (physicsParticle) {
@@ -246,8 +245,9 @@ function updateParticlePositions() {
     
  
     SimulationManager.handleBoundaries({
-        width: WORLD_SIZE,
-        height: WORLD_SIZE
+        width: defaultParams.WIDTH,
+        height: defaultParams.HEIGHT,
+        
     });
     
     // Update physics simulation
@@ -262,11 +262,10 @@ function updateParticlePositions() {
         const orientation = rigidBodies[i].rotation();
 
         
-        
         // Update mesh position (convert from physics space to Three.js space)
         particles[i].position.set(
-            position.x - WORLD_SIZE / 2,
-            position.y - WORLD_SIZE / 2,
+            position.x - defaultParams.WIDTH / 2,
+            position.y - defaultParams.HEIGHT / 2,
             0
         );
 
@@ -280,11 +279,7 @@ function updateParticlePositions() {
  */
 function animate() {
     animationFrameId = requestAnimationFrame(animate);
-    
-    // Update controls - ensure they're properly updated for interaction
-    if (controls) {
-        controls.update();
-    }
+
     
     // Update particle positions from physics
     updateParticlePositions();
