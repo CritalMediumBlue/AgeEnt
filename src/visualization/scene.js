@@ -4,9 +4,9 @@ import * as SimulationManager from '../simulation/simulationManager.js';
 
 // Scene variables
 let scene, camera, renderer, controls;
-let particles = []; // Array to store particle meshes
+let bacteria = []; // Array to store bacterium meshes
 let simulationInitialized = false;
-let physicsParticles = []; // Array to store physics particles
+let physicsBacteria = []; // Array to store physics bacteria
 let animationFrameId;
 
 
@@ -27,7 +27,7 @@ export async function initScene(parameters) {
     console.log("Initializing scene with parameters:", parameters);
     defaultParams.WIDTH = parameters.width;
     defaultParams.HEIGHT = parameters.height;
-    defaultParams.EXIT = parameters.EXIT;
+    defaultParams.EXIT = parameters.exit;
     defaultParams.BACTERIA_RADIUS = parameters.bacteriaRadius;
     defaultParams.DOUBLING_TIME = parameters.DOUBLING_TIME;
     defaultParams.NUMBER_OF_BACTERIA = parameters.numberOfBacteria;
@@ -69,8 +69,8 @@ export async function initScene(parameters) {
         simulationInitialized = true;
         console.log("Simulation initialized successfully");
         
-        // Create particles
-        createParticles();
+        // Create bacteria
+        createBacteria();
     } catch (error) {
         console.error("Failed to initialize simulation:", error);
     }
@@ -111,14 +111,14 @@ function deleteAll() {
         return;
     }
 
-    // Remove all particles from the scene
-    for (let particle of particles) {
-        scene.remove(particle);
+    // Remove all bacteria from the scene
+    for (let bacterium of bacteria) {
+        scene.remove(bacterium);
         // Dispose of geometry and material to free memory
-        particle.geometry.dispose();
-        particle.material.dispose();
+        bacterium.geometry.dispose();
+        bacterium.material.dispose();
     }
-    particles = [];
+    bacteria = [];
 
     // Remove and dispose of grid and axes helpers
     const gridHelper = scene.getObjectByName('gridHelper');
@@ -177,49 +177,45 @@ function deleteAll() {
     camera = null;
     renderer = null;
     controls = null;
-    physicsParticles = [];
+    physicsBacteria = [];
     simulationInitialized = false;
 
     console.log("All scene elements deleted");
 }
 
-/**
- * Create particle representations
- */
-function createParticles() {
+// In createBacteria(), after creating the physics bacterium, add the unique ID to the mesh:
+function createBacteria() {
     if (!simulationInitialized) {
-        console.error("Cannot create particles: simulation not initialized");
+        console.error("Cannot create bacteria: simulation not initialized");
         return;
     }
     
-    // Create particle meshes
+    // Create bacterium meshes
     for (let i = 0; i < defaultParams.NUMBER_OF_BACTERIA; i++) {
-        // Create different materials for different particle types
-        const particleMaterial1 = new THREE.MeshBasicMaterial({ color: 0xff00ff ,
-            transparent: true, opacity: 0.5 });
-       
-      
+        const bacteriumMaterial1 = new THREE.MeshBasicMaterial({ 
+            color: 0xff00ff,
+            transparent: true, opacity: 0.5 
+        });
       
         // Create capsule mesh
         const capsule = new THREE.Mesh(
-            new THREE.CapsuleGeometry(defaultParams.BACTERIA_RADIUS,  4*defaultParams.BACTERIA_RADIUS, 
-                4, 8),
-            particleMaterial1
+            new THREE.CapsuleGeometry(defaultParams.BACTERIA_RADIUS,  4*defaultParams.BACTERIA_RADIUS, 4, 8),
+            bacteriumMaterial1
         );
         
         // Set initial position
         capsule.position.set(
-            Math.random()* defaultParams.WIDTH,
-            Math.random()* defaultParams.HEIGHT,
+            Math.random() * defaultParams.WIDTH,
+            Math.random() * defaultParams.HEIGHT,
             0
         );
         
         // Add to scene and store reference
-        particles.push(capsule);
         scene.add(capsule);
+        bacteria.push(capsule);
         
-        // Create physics particle at corresponding position
-        const physicsParticle = SimulationManager.createParticle({
+        // Create physics bacterium at corresponding position
+        const physicsBacterium = SimulationManager.createBacterium({
             position: {
                 x: capsule.position.x, 
                 y: capsule.position.y 
@@ -227,53 +223,78 @@ function createParticles() {
             radius: defaultParams.BACTERIA_RADIUS,
         });
         
-        if (physicsParticle) {
-            physicsParticles.push(physicsParticle);
+        if (physicsBacterium) {
+            // Save the unique id on the mesh
+            capsule.userData.id = physicsBacterium.id;
+            physicsBacteria.push(physicsBacterium);
         }
     }
     
-    console.log(`Created ${particles.length} particles with physics bodies`);
+    console.log(`Created ${bacteria.length} bacteria with physics bodies`);
 }
 
-
-
-/**
- * Update particle positions from physics simulation
- */
-function updateParticlePositions() {
+// Updated updateBacteriumPositions() function
+function updateBacteriumPositions() {
     if (!simulationInitialized) return;
     
- 
     SimulationManager.handleBoundaries({
         width: defaultParams.WIDTH,
         height: defaultParams.HEIGHT,
-        
+        exit: defaultParams.EXIT
     });
     
     // Update physics simulation
     SimulationManager.updateSimulation();
-    
-    // Get all rigid bodies
     const rigidBodies = SimulationManager.getRigidBodies();
     
-    // Update visual representation based on physics
-    for (let i = 0; i < particles.length && i < rigidBodies.length; i++) {
-        const position = rigidBodies[i].translation();
-        const orientation = rigidBodies[i].rotation();
-
+    // Remove meshes for bacteria that have been deleted in the physics simulation.
+    // Loop backward to avoid indexing issues during splice.
+    for (let i = bacteria.length - 1; i >= 0; i--) {
+        const mesh = bacteria[i];
+        const id = mesh.userData.id;
+        if (!rigidBodies.has(id)) {
+            scene.remove(mesh);
+            mesh.geometry.dispose();
+            if (Array.isArray(mesh.material)) {
+                mesh.material.forEach(mat => mat.dispose());
+            } else {
+                mesh.material.dispose();
+            }
+            bacteria.splice(i, 1);
+            console.log(`Deleted mesh for bacterium id ${id}`);
+        }
+    }
+    
+    // Update visual representation for remaining bacteria based on physics simulation.
+    for (const [id, bodyData] of rigidBodies.entries()) {
+        // Find the corresponding mesh by matching userData.id
+        const mesh = bacteria.find(m => m.userData.id === id);
+        if (!mesh) continue;
+        
+        const body = bodyData.rigidBody;
+        const position = body.translation();
+        const orientation = body.rotation();
+        const newLength = bodyData.length;
+        
+        mesh.geometry.dispose();
+        mesh.geometry = new THREE.CapsuleGeometry(
+            defaultParams.BACTERIA_RADIUS,
+            2 * newLength,
+            4,
+            8
+        );
+        mesh.updateMatrixWorld();
         
         // Update mesh position (convert from physics space to Three.js space)
-        particles[i].position.set(
+        mesh.position.set(
             position.x - defaultParams.WIDTH / 2,
             position.y - defaultParams.HEIGHT / 2,
             0
         );
-
-        particles[i].rotation.set(0,0,orientation);
-       
+        
+        mesh.rotation.set(0, 0, orientation);
     }
 }
-
 /**
  * Animation loop
  */
@@ -281,8 +302,8 @@ function animate() {
     animationFrameId = requestAnimationFrame(animate);
 
     
-    // Update particle positions from physics
-    updateParticlePositions();
+    // Update bacterium positions from physics
+    updateBacteriumPositions();
     
     // Render the scene
     renderer.render(scene, camera);
