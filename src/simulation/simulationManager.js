@@ -7,20 +7,17 @@ let initialized = false;
 let isPaused = true;
 const rigidBodies = [];
 
-// Constants
-const particleRadius = 3; // micrometers
-const defaultParameters = {}
 
 /**
  * Initialize the physics simulation
  */
-export async function initSimulation(options = {}) {
+export async function initSimulation() {
     try {
         // Wait for Rapier to initialize
         await RAPIER.init();
         
         // Set up gravity (default to zero)
-        const gravity = options.gravity || { x: 0.0, y: 0.0 };
+        const gravity = { x: 0.0, y: 0.0 };
         
         // Create the physics world
         world = new RAPIER.World(gravity);
@@ -102,18 +99,18 @@ export function createParticle(options = {}) {
         return null;
     }
     
-    const position = options.position || { x: 0, y: 0 };
-    const radius = options.radius || particleRadius;
-    const restitution = options.restitution || 1.0;
-    const friction = options.friction || 0.0;
-    const density = options.density || 1.0;
+    const position = options.position ;
+    const radius = options.radius ;
+    const restitution =  0.5;
+    const friction =  0.0;
+    const density =  1.0;
     
     // Create rigid body
     const bodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(position.x, position.y);
     const rigidBody = world.createRigidBody(bodyDesc);
     
     // Create collider
-    const colliderDesc = RAPIER.ColliderDesc.capsule(radius, radius)
+    const colliderDesc = RAPIER.ColliderDesc.capsule(radius*2, radius)
         .setRestitution(restitution)
         .setFriction(friction)
         .setDensity(density);
@@ -122,7 +119,7 @@ export function createParticle(options = {}) {
     
   
     const [vx, vy] = normalPolar(0, 1);
-    rigidBody.setLinvel({ x: vx * 50, y: vy * 50 }, true);
+    rigidBody.setLinvel({ x: vx * 5, y: vy * 5 }, true);
     
     
     // Store the rigid body

@@ -10,9 +10,12 @@ let physicsParticles = []; // Array to store physics particles
 let animationFrameId;
 
 // Constants
-const WORLD_SIZE = 1000;
-const PARTICLE_COUNT = 1000;
-const PARTICLE_RADIUS = 3; // micrometers
+const WORLD_SIZE = 100;
+
+
+
+
+    
 
 /**
  * Initialize the Three.js scene
@@ -23,7 +26,14 @@ export async function initScene(parameters) {
         deleteAll();
         console.log("Simulation already initialized, deleting existing elements");
     }
-
+    console.log("Initializing scene with parameters:", parameters);
+   /*  defaultParams.WIDTH = parameters.WIDTH;
+    defaultParams.HEIGHT = parameters.HEIGHT;
+    defaultParams.EXIT = parameters.EXIT;
+    defaultParams.BACTERIA_RADIUS = parameters.BACTERIA_RADIUS;
+    defaultParams.DOUBLING_TIME = parameters.DOUBLING_TIME;
+    defaultParams.NUMBER_OF_BACTERIA = parameters.NUMBER_OF_BACTERIA;
+      */
 
     // Cache DOM elements and constants
     const canvasWidth = window.innerWidth;
@@ -35,7 +45,7 @@ export async function initScene(parameters) {
     
     // Create the camera
     camera = new THREE.PerspectiveCamera(75, canvasWidth / canvasHeight, 0.1, 3000);
-    camera.position.z = 500;
+    camera.position.z = 100;
     
     // Create the renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -48,7 +58,7 @@ export async function initScene(parameters) {
     // Add OrbitControls for camera interaction
     controls = new OrbitControls(camera, renderer.domElement);
 
-    controls.minDistance = 100;
+    controls.minDistance = 20;
     controls.maxDistance = 1500;
     controls.maxPolarAngle = Math.PI;
     
@@ -57,7 +67,7 @@ export async function initScene(parameters) {
     
     // Initialize physics simulation
     try {
-        await SimulationManager.initSimulation(parameters);
+        await SimulationManager.initSimulation();
         simulationInitialized = true;
         console.log("Simulation initialized successfully");
         
@@ -82,7 +92,7 @@ export async function initScene(parameters) {
  * Add a grid to the scene for reference
  */
 function addGrid() {
-    const gridHelper = new THREE.GridHelper(WORLD_SIZE, WORLD_SIZE / 10);
+    const gridHelper = new THREE.GridHelper(WORLD_SIZE*5, WORLD_SIZE / 10);
     gridHelper.name = 'gridHelper';
     scene.add(gridHelper);
     
@@ -186,33 +196,36 @@ function createParticles(parameters) {
     // Create particle meshes
     for (let i = 0; i < parameters.numberOfBacteria; i++) {
         // Create different materials for different particle types
-        const particleMaterial1 = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+        const particleMaterial1 = new THREE.MeshBasicMaterial({ color: 0xff00ff ,
+            transparent: true, opacity: 0.5 });
+       
       
       
-        // Create sphere mesh
-        const sphere = new THREE.Mesh(
-            new THREE.CapsuleGeometry(PARTICLE_RADIUS, 8, 8),
+        // Create capsule mesh
+        const capsule = new THREE.Mesh(
+            new THREE.CapsuleGeometry(parameters.bacteriaRadius,  4*parameters.bacteriaRadius, 
+                4, 8),
             particleMaterial1
         );
         
         // Set initial position
-        sphere.position.set(
+        capsule.position.set(
             Math.random()* WORLD_SIZE/10 ,
             Math.random()* WORLD_SIZE/10 ,
             0
         );
         
         // Add to scene and store reference
-        particles.push(sphere);
-        scene.add(sphere);
+        particles.push(capsule);
+        scene.add(capsule);
         
         // Create physics particle at corresponding position
         const physicsParticle = SimulationManager.createParticle({
             position: {
-                x: sphere.position.x, 
-                y: sphere.position.y 
+                x: capsule.position.x, 
+                y: capsule.position.y 
             },
-            radius: PARTICLE_RADIUS
+            radius: parameters.bacteriaRadius,
         });
         
         if (physicsParticle) {

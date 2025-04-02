@@ -7,7 +7,7 @@ let simulationStartCallback = null;
 let width = 100;
 let height = 60;
 let exit = 'top';
-let bacteriaDiameter = 0.05;
+let bacteriaRadius = 0.5;
 let doublingTime = 30;
 let numberOfBacteria = 1;
 
@@ -47,7 +47,7 @@ export function initControls() {
 
 export function getParameters() {
     // This function will return the parameters set by the user
-    return {width, height, exit, bacteriaDiameter, doublingTime, numberOfBacteria};
+    return {width, height, exit, bacteriaRadius, doublingTime, numberOfBacteria};
 }
 
 export function setSimulationStartCallback(callback) {
@@ -152,7 +152,7 @@ function addSimulationControls() {
             type: 'slider',
             label: 'Number of bacteria',
             min: 1,
-            max: 1000,
+            max: 3000,
             step: 1,
             defaultValue: 3,
             onChange: (value) => {
@@ -169,17 +169,17 @@ function addSimulationControls() {
       controlsContainer.appendChild(title2);
 
    
-    addSection(' Diameter [μm]', [
+    addSection(' Radius [μm]', [
         {
             type: 'fineSlider',
             label: 'Mean',
-            min: 0.25,
-            max: 1.25,
+            min: 0.1,
+            max: 1.0,
             step: 0.05,
-            defaultValue: 0.05,
+            defaultValue: 0.5,
             onChange: (value) => {
-                bacteriaDiameter = value;
-                console.log(` diameter set to ${value} μm`);
+                bacteriaRadius = value;
+                console.log(` radius set to ${value} μm`);
             }
         },
         {
@@ -190,7 +190,7 @@ function addSimulationControls() {
             step: 0.05,
             defaultValue: 0.05,
             onChange: (value) => {
-                bacteriaDiameter = value;
+                //bacteriaRadiusSD = value;
                 console.log(` diameter set to ${value} μm`);
             }
         }
