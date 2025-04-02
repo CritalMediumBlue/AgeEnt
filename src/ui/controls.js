@@ -9,6 +9,7 @@ let height = 60;
 let exit = 'top';
 let bacteriaDiameter = 0.05;
 let doublingTime = 30;
+let numberOfBacteria = 1;
 
 let numSubstances = 1; // Default number of substances
 let diffusionCoefficients = [1.0]; // Default diffusion coefficients
@@ -46,7 +47,7 @@ export function initControls() {
 
 export function getParameters() {
     // This function will return the parameters set by the user
-    return {width, height, exit, bacteriaDiameter, doublingTime};
+    return {width, height, exit, bacteriaDiameter, doublingTime, numberOfBacteria};
 }
 
 export function setSimulationStartCallback(callback) {
@@ -155,8 +156,9 @@ function addSimulationControls() {
             step: 1,
             defaultValue: 3,
             onChange: (value) => {
-                
-                console.log(` diameter set to ${value} μm`);
+
+                numberOfBacteria = value
+                console.log(`Number of bacteria is ${value}`);
             }
         }
     ]);

@@ -17,7 +17,7 @@ const PARTICLE_RADIUS = 3; // micrometers
 /**
  * Initialize the Three.js scene
  */
-export async function initScene() {
+export async function initScene(parameters) {
     // Check if simulation is already initialized
     if (simulationInitialized) {
         deleteAll();
@@ -57,12 +57,12 @@ export async function initScene() {
     
     // Initialize physics simulation
     try {
-        await SimulationManager.initSimulation();
+        await SimulationManager.initSimulation(parameters);
         simulationInitialized = true;
         console.log("Simulation initialized successfully");
         
         // Create particles
-        createParticles();
+        createParticles(parameters);
     } catch (error) {
         console.error("Failed to initialize simulation:", error);
     }
@@ -177,14 +177,14 @@ function deleteAll() {
 /**
  * Create particle representations
  */
-function createParticles() {
+function createParticles(parameters) {
     if (!simulationInitialized) {
         console.error("Cannot create particles: simulation not initialized");
         return;
     }
     
     // Create particle meshes
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
+    for (let i = 0; i < parameters.numberOfBacteria; i++) {
         // Create different materials for different particle types
         const particleMaterial1 = new THREE.MeshBasicMaterial({ color: 0xff00ff });
       

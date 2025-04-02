@@ -9,6 +9,7 @@ const rigidBodies = [];
 
 // Constants
 const particleRadius = 3; // micrometers
+const defaultParameters = {}
 
 /**
  * Initialize the physics simulation
